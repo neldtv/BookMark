@@ -1,0 +1,61 @@
+前言:
+
+目前关于runloop的文章也不少，有基于公开的api分析的,也有基于公开的源码分析的.看了很多，基本属于逆向分析,也就是先看结果再反推为什么,
+却很少有基于runloop设计动机去分析的。
+
+1.runloop是什么?
+runloop简单说,它是一个事件处理调度机制,而且是存在于线程内的事件调度机制.
+
+2.runloop能做什么
+我们最常直接使用到runloop的场景应该就是定时器了,但其实包括屏幕触摸事件包括基于machport的消息传递 也是runloop在处理，所以它做的事情 
+简单来说就是处理各种事件。
+
+3.为什么要使用runloop,好处是什么，runloop如何运作的
+无论是服务器，还是移动设备，cpu资源都是相当宝贵的,所以必须充分利用cpu资源。试想,如果要处理不确定数量和不确定触发时间的任务,
+应该怎么做？哪种机制效率最高？
+打个比方,你知道有几个朋友今年要来你家做客,但不确定他们什么时候过来(比如堵车或者临时有事) 你想第一时间接待他们, 那你该怎么处理,
+最简单的当然不出门就待在家里等待了,他们到了，就能第一时间接待了.但这样效率就很低了，你需要出门办的其它事情办不了(CPU阻塞)。
+所以你想是不是把这几个人的电话号码找出来,隔一段时间就打电话问他们大概什么来,是不是真的会来,这样确定他们还没来的空闲时间可以做其他事情(SELECT机制)
+但一整年都打电话问,也很麻烦，毕竟打电话也要时间,如果他们来之前打电话通知你，是不是会更好(EPOLL机制).
+所以我大胆推测runloop是一个类似EPOLL/KQUEUE的多路复用机制,将一些不确定触发时间，以及触发频繁的任务发起者(触摸屏、MACHPORT、定时器)加入到观察名单
+(也就是加入到runloop)，监听特定事件（app内部事件 SOURCE0,MachPort等事件SOURCE1）然后根据事件作出处理。
+
+4.runloop模拟实现
+
+struct epoll_event eventList[MAX_EVENTS];
+int epfd = epoll_create(MAX_EPOLLFD);
+struct epoll_event touchevent,machportEvent;
+touchevent.events = EPOLLIN | EPOLLET;
+touchevent.data.fd = screenPortFd;
+machportEvent.events = EPOLLIN | EPOLLET;
+machportEvent.data.fd = machPortFd;
+int re = epoll_ctl(epfd, EPOLL_CTL_ADD, screenPortFd, &touchevent);
+if(re!=0)
+{
+    return -1;
+}
+//将需要监控的对象和监控的事件加入  
+re = epoll_ctl(epfd, EPOLL_CTL_ADD, machPortFd, &machportEvent);
+if(re!=0)
+{
+    return -1;
+}
+while (1) 
+{
+      int k;
+      int nfds = epoll_wait(epfd, eventList, MAX_EVENTS, -1);
+       if(nfds > 0)
+       {
+            for (k = 0; k < nfds; ++k)
+            {
+                if(eventList[k].data.fd== screenPortFd)
+                {
+                    //触摸屏事件
+                }
+                else if(eventList[k].data.fd== machportFd)
+                {
+                    //machport事件
+                }
+            }
+        }
+   }     

@@ -20,7 +20,7 @@ runloop简单说,它是一个事件处理调度机制,而且是存在于线程�
 所以我大胆推测runloop是一个类似EPOLL/KQUEUE的多路复用机制,将一些不确定触发时间，以及触发频繁的任务发起者(触摸屏、MACHPORT、定时器)加入到观察名单
 (也就是加入到runloop)，监听特定事件（app内部事件 SOURCE0,MachPort等事件SOURCE1）然后根据事件作出处理。
 
-4.runloop模拟实现
+4.runloop模拟实现 （简单的流程 实际设计到事件优先级以及事件队列等以及wait时间和加入退出runloop）
 
 struct epoll_event eventList[MAX_EVENTS];
 int epfd = epoll_create(MAX_EPOLLFD);

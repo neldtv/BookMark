@@ -1,0 +1,27 @@
+LFLivekit 框架流程
+
+LFLiveSession
+=====================
+此层用于控制直播开关  重要成员变量: _audioConfiguration,_videoConfiguration,_audioCapture,_videoCapture.
+1.initWithAudioConfiguration 用于初始化一个livesession对象，配置音频的采样率 视频的帧率、分辨率和码率。配置信息分别
+  保存在_audioConfiguration和 _videoConfiguration中。 
+2.setRunning 在这里调用懒加载 调用initWithAudioConfiguration和initWithVideoConfiguration 分别生成LFVideoCapture对象 videoCapture 
+  和 LFAudioCapture对象 audioCapture。
+  2.1)其中LiveAudioCapture的方法initWithAudioConfiguration 创建一个AVAudioSession 用于管理音频录入，
+  并设置音频回调函数 将数据回调到livesession层处理.
+  2.2)而liveVideoCapture的方法initWithVideoConfiguration 初始化videoCapture 并初始化类型为GPUImageVideoCamera的成员变量videoCamera，
+  其中在videoCamera中创建一个AVCAPTURESESSION类型的_captureSession 管理视频输入和输出，同时设置视频输入设备(前或后摄像头)，视频输出(videoout)
+  的格式YUV420、分辨率 以及视频输出的回调方法。同时initWithVideoConfiguration设置美颜模式 配置各个过滤器 filter的依赖关系和
+  对应的回调函数(setFrameProcessingCompletionBlock),每一个gpuimagefilter对象都可以设置FrameProcessingCompletionBlock，而videocamera中视频输出的
+  回调函数在经过一系列处理后 最终调用setFrameProcessingCompletionBlock 设置的回调 将数据返回到LiveVideoCapture的 processVideo 并经代理返回到
+  livesession层处理(硬件编码以及发送数据)。
+  
+  LiveVideoCapture
+  =============================
+  此层是管理视频添加滤镜特效以及视频输入输出的  其中videoCamera是一个GPUImageVideoCamera类型的成员变量,通过它配置视频输入和输出,并将数据层层传递。
+  
+  GPUImageVideoCamera
+  ========================
+  此类中配置视频输入输出 获取到摄像头返回后的数据后交由 processVideoSampleBuffer处理 经过一系列顶点渲染 片段渲染后 
+  updateTargetsForVideoCameraUsingCacheTextureAtWidth gupimagefilter类型对象调用frameProcessingCompletionBlock返回渲染后的数据
+  而gpuimageview类型对象则将数据展示在预览视图上.

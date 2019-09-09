@@ -1,0 +1,57 @@
+KXMovie 框架
+
+========================
+kxMovieDecoder
+1.定义了各种错误
+typedef enum {
+    
+    kxMovieErrorNone,
+    kxMovieErrorOpenFile,
+    kxMovieErrorStreamInfoNotFound,
+    kxMovieErrorStreamNotFound,
+    kxMovieErrorCodecNotFound,
+    kxMovieErrorOpenCodec,
+    kxMovieErrorAllocateFrame,
+    kxMovieErroSetupScaler,
+    kxMovieErroReSampler,
+    kxMovieErroUnsupported,
+    
+} kxMovieError;
+2.定义了媒体类型
+typedef enum {
+    
+    KxMovieFrameTypeAudio,
+    KxMovieFrameTypeVideo,
+    KxMovieFrameTypeArtwork,
+    KxMovieFrameTypeSubtitle,
+    
+} KxMovieFrameType;
+包括音频类型、视频类型、网络媒体、字幕类型
+3.定义了视频图像格式
+typedef enum {
+        
+    KxVideoFrameFormatRGB,
+    KxVideoFrameFormatYUV,
+    
+} KxVideoFrameFormat;
+视频格式分为RGB 和yuv 通常现有视频图像格式都是是yuv 如果后面要使用gpuimage需要将图像格式转为rgb
+后面再说。
+
+=========================
+kxMovieFrame 媒体帧 
+  kxMovieFrame类型的属性包含媒体帧类型type(音/视频)，position（帧全局位置），duration（帧时长）
+分为四种 KxVideoFrame 和kxAudioFrame 分别是视频帧和音频帧，kxArtWorkFrame 和kxSubtitleFrame(网络图片/字幕)
+kxVideoFrame包含属性有 format(视频帧图像格式RGB/YUV)，width,height (宽和长)
+  kxAudioFrame 包含属性有 samples（采样数据）
+  kxArtWorkFrame 包含一个图片数据属性picture  kxSubtitleFrame 包含一个字符串属性text
+  kxVideoFrame又有两个子类 kxVideoFrameRGB 和kxVideoFrameYUV;
+    kxVideoFrameRGB包含两个属性 linesize和rgb数据
+    kxVideoFrameYUV包含三个属性 luma(亮度数据)，chromab,chromaR(色度信息)
+ =======================================
+ kxMoiveDecoder 解码器
+ 包含以下属性：
+ 1.path:媒体路径
+ 2.isEOF
+    
+
+

@@ -1,7 +1,8 @@
 KXMovie 框架
 
 ========================
-kxMovieDecoder
+kxMovieDecoder.m
+首先看头文件
 1.定义了各种错误
 typedef enum {
     
@@ -51,7 +52,52 @@ kxVideoFrame包含属性有 format(视频帧图像格式RGB/YUV)，width,height 
  kxMoiveDecoder 解码器
  包含以下属性：
  1.path:媒体路径
- 2.isEOF
+ 2.isEOF：文件是否读完
+ 3.position:帧位置
+ 4.duration:帧时长
+ 5.fps:帧率
+ 6.sampleRate:采样率
+ 7.frameWidth:帧宽
+ 8.frameHeight:帧长
+ 9.audioStreamsCount:音频流数量
+ 10.selectedAudioStream:选择的音频流
+ 11.subtitleStreamsCount:字幕流数量
+ 12.selectedSubtitleStream:选择的字幕流
+ 13.validVideo:是否视频
+ 14.validAudio:是否音频
+ 15.validSubtitles:是否字幕
+ 16.info：媒体信息
+ 17.videoStreamFormatName:视频流图像格式类型
+ 18.isNetWork：是否是网络类型
+ 19.startTime:起始时间
+ 20.disableDeinteracing:(暂时不明)
+ 21.interruptCallback：错误回调
     
-
-
+    
+================================
+再来看看调用流程
+1.首先openfile 即打开媒体路径
+   1）openfile中先判断是不是网络媒体，如果是调用avformat_network_init()
+   2）然后调用openinput，openinput 初始化一个avformatcontext类型 formatCtx(avformat_alloc_context)
+   绑定回调函数formatCtx->interrupt_callback = cb
+   PS:说个题外话,这里如果设置了formatCtx->probesize为nobuffer 后面就不会预读一段数据去判断解码器
+   可以提高首屏开屏时间的效果 不过前提是知道音视频格式
+   初始化formatCtx后调用avformat_open_input 打开媒体文件 内部调用init_input 再调用s->iformat->read_header() 读取多媒体数据文件头 根据相应的
+   音视频媒体流初始化formatCtx的streams.
+   接着调用avfromat_find_stream_info 这里给formatCtx里的streams数组赋值,后面根据streams的编码格式可以区分是音频还是视频什么的
+   3）调用openVideoStream,其中调用collectStreams 遍历formatCtx的总数 根据formatCtx->strems[i]->codec->codec_type 也就是
+     对应的流的编码格式判断是视频,返回视频流在streams中的位置数组_videoStreams，然后在遍历这些视频流，判断不是音频文件的图片(有些带图片的mp3是用视频流)
+     找出真正的视频流，如果是图片则归为artworkStream(音频文件的图片) 然后调用openVideoStream:视频流位置，这一步其实就是找解码器了
+     首先从该流中找出该流的编解码信息结构AVCodecContext *codecCtx = formatCtx->streams[videoStream]->codec;
+     然后根据上一步获取的编解码信息结构体的codeid 调用avcodec_find_decoder(codecCtx->codec_id)找出合适的解码器 AVCodec *codec.
+     接着传递第一步获取的编解码信息结构体和上一步获取的解码器 打开解码器 avcodec_open2,接着调用av_frame_alloc生成avframe类型的视频帧_videoFrame
+     这个也是kxmoveiDecoder的成员变量，同时另一成员变量_videoCodecCtx也赋值上面生成的编解码信息结构体，记录视频流位置_videostream。同时调用avStreamFPSTimeBase获取帧率
+     4）openAudioStream 同样是遍历formatCtx->strems 根据streams[i]->codecCtx->codeType判断是音频 然后返回一个数组_audioStream,在遍历调用
+     openAudioStream:音频流位置  其中根据音频流的codec生成音频编解码结构体codecCtx,传递编解码结构体id 调用av_find_decoder生成解码器,然后打开
+     解码器avcodec_open2,这里和视频有一点不一样 这里需要转换采样率 调用了swr_alloc_set_opts 等 将音频转换成 44100 av_samle_fmt_s16 同时生成
+     成员变量_SwrContext和音频解码结构体_audioCodecCtx，再给音频帧分配内存_audioFrame,记录音频流位置_audioStream,调用avStreamFPSTimeBase获取音频
+     基准时间_audioTimeBase.
+     5)遍历找到字幕流赋值给_subtitleStream
+     
+     
+     

@@ -1,0 +1,8 @@
+将代码提交到git上
+1.首先在代码文件夹 初始化git仓库  git init
+2.给本地git缓存添加文件  git add ./* 即是将本地所有文件加入缓存  如果不想加入pods文件 则编辑生成.gitignore 输入排除的项目
+3.git add. 加入缓存区
+4.git commit -m "first commit" 这一步完成本地提交
+5.git remote add origin xxxxxx.git  xxxx为远程仓库地址  如果输错了地址的话 git remote rm origin即可 
+6.git push -u origin master  输入用户名密码 ok
+7.如果这一步报错 多半是README.md的问题 git pull --rebase origin master 再重新第六步
